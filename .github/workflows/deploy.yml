@@ -1,0 +1,40 @@
+name: Deploy Frontend to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH and Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            # Create directory if it doesn't exist
+            mkdir -p /var/www/central-logger-dashboard
+            cd /var/www/central-logger-dashboard
+            
+            # Initialize git if not already present
+            if [ ! -d ".git" ]; then
+              echo "Initializing git repository..."
+              git init
+              git remote add origin https://github.com/AquibFaiyaz/central-logger-dashboard.git
+            fi
+            
+            echo "Fetching latest changes..."
+            git fetch --all
+            git checkout -f main
+            git pull origin main
+            
+            echo "Installing dependencies..."
+            npm install
+            
+            echo "Building static files..."
+            npm run build

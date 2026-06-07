@@ -4,7 +4,7 @@ import { StatsPanel } from './components/StatsPanel';
 import { LogTable } from './components/LogTable';
 import { TraceTimeline } from './components/TraceTimeline';
 
-const API_BASE = 'http://166.0.244.81:4000/api/v1';
+const API_BASE = '/logger-api/api/v1';
 
 export default function App() {
   const [logs, setLogs] = useState<any[]>([]);
