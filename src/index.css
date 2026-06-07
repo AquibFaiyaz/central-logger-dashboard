@@ -202,6 +202,12 @@ body {
   border-color: var(--accent-color);
 }
 
+.active-filter {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15) !important;
+  background-color: rgba(99, 102, 241, 0.04) !important;
+}
+
 .btn-live {
   display: flex;
   align-items: center;

@@ -10,28 +10,74 @@ export default function App() {
   const [logs, setLogs] = useState<any[]>([]);
   const [apps, setApps] = useState<string[]>([]);
   
+  // Get initial values from URL search parameters on page refresh
+  const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
+  
   // Filters State
-  const [selectedApp, setSelectedApp] = useState<string>('');
-  const [selectedLevel, setSelectedLevel] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [selectedApp, setSelectedApp] = useState<string>(() => searchParams.get('appId') || '');
+  const [selectedLevel, setSelectedLevel] = useState<string>(() => searchParams.get('level') || '');
+  const [searchQuery, setSearchQuery] = useState<string>(() => searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>(() => searchParams.get('search') || '');
   
   // Pagination State
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(30);
+  const [currentPage, setCurrentPage] = useState<number>(() => {
+    const p = parseInt(searchParams.get('page') || '1', 10);
+    return isNaN(p) || p < 1 ? 1 : p;
+  });
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const s = parseInt(searchParams.get('pageSize') || '30', 10);
+    return isNaN(s) || s < 1 ? 30 : s;
+  });
   const [totalLogs, setTotalLogs] = useState<number>(0);
 
   // Time Range State
-  const [timeRange, setTimeRange] = useState<string>('1h');
-  const [customStartTime, setCustomStartTime] = useState<string>('');
-  const [customEndTime, setCustomEndTime] = useState<string>('');
+  const [timeRange, setTimeRange] = useState<string>(() => searchParams.get('timeRange') || '1h');
+  const [customStartTime, setCustomStartTime] = useState<string>(() => searchParams.get('startTime') || '');
+  const [customEndTime, setCustomEndTime] = useState<string>(() => searchParams.get('endTime') || '');
   
   // UI & Live States
   const [loading, setLoading] = useState<boolean>(true);
-  const [isLive, setIsLive] = useState<boolean>(true); // default to live stream!
-  const [activeTraceId, setActiveTraceId] = useState<string | null>(null);
-  const [timezone, setTimezone] = useState<string>('local');
+  const [isLive, setIsLive] = useState<boolean>(() => {
+    const live = searchParams.get('isLive');
+    return live === null ? true : live === 'true';
+  });
+  const [activeTraceId, setActiveTraceId] = useState<string | null>(() => searchParams.get('traceId'));
+  const [timezone, setTimezone] = useState<string>(() => searchParams.get('timezone') || 'local');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+
+  // Synchronize state changes to URL search params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (selectedApp) params.set('appId', selectedApp);
+    if (selectedLevel) params.set('level', selectedLevel);
+    if (debouncedSearch) params.set('search', debouncedSearch);
+    if (currentPage !== 1) params.set('page', String(currentPage));
+    if (pageSize !== 30) params.set('pageSize', String(pageSize));
+    if (timeRange !== '1h') params.set('timeRange', timeRange);
+    if (timeRange === 'custom') {
+      if (customStartTime) params.set('startTime', customStartTime);
+      if (customEndTime) params.set('endTime', customEndTime);
+    }
+    if (!isLive) params.set('isLive', 'false');
+    if (activeTraceId) params.set('traceId', activeTraceId);
+    if (timezone !== 'local') params.set('timezone', timezone);
+
+    const queryString = params.toString();
+    const newUrl = `${window.location.pathname}${queryString ? `?${queryString}` : ''}`;
+    window.history.replaceState(null, '', newUrl);
+  }, [
+    selectedApp,
+    selectedLevel,
+    debouncedSearch,
+    currentPage,
+    pageSize,
+    timeRange,
+    customStartTime,
+    customEndTime,
+    isLive,
+    activeTraceId,
+    timezone,
+  ]);
 
   // Compute time range boundaries
   const timeRangeBounds = useMemo(() => {
@@ -263,7 +309,7 @@ export default function App() {
           </button>
 
           {/* Query search */}
-          <div className="search-input-wrapper">
+          <div className={`search-input-wrapper ${searchQuery ? 'active-filter' : ''}`}>
             <Search size={18} />
             <input
               type="text"
@@ -276,7 +322,7 @@ export default function App() {
 
           {/* App Select dropdown */}
           <select
-            className="filter-select"
+            className={`filter-select ${selectedApp ? 'active-filter' : ''}`}
             value={selectedApp}
             onChange={(e) => setSelectedApp(e.target.value)}
           >
@@ -288,7 +334,7 @@ export default function App() {
 
           {/* Level selector */}
           <select
-            className="filter-select"
+            className={`filter-select ${selectedLevel ? 'active-filter' : ''}`}
             value={selectedLevel}
             onChange={(e) => setSelectedLevel(e.target.value)}
           >
@@ -301,7 +347,7 @@ export default function App() {
 
           {/* Timezone selector */}
           <select
-            className="filter-select"
+            className={`filter-select ${timezone !== 'local' ? 'active-filter' : ''}`}
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
             style={{ minWidth: '130px' }}
@@ -315,7 +361,7 @@ export default function App() {
 
           {/* Time Range selector */}
           <select
-            className="filter-select"
+            className={`filter-select ${timeRange !== '1h' ? 'active-filter' : ''}`}
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
             style={{ minWidth: '130px' }}
