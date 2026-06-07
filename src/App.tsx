@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Search, RotateCw, Trash2, Shield, Radio, Terminal, Menu } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Search, RotateCw, Trash2, Shield, Radio, Terminal, Menu, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { StatsPanel } from './components/StatsPanel';
 import { LogTable } from './components/LogTable';
 import { TraceTimeline } from './components/TraceTimeline';
@@ -16,12 +16,41 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize] = useState<number>(50);
+  const [totalLogs, setTotalLogs] = useState<number>(0);
+
+  // Time Range State
+  const [timeRange, setTimeRange] = useState<string>('1h');
+  const [customStartTime, setCustomStartTime] = useState<string>('');
+  const [customEndTime, setCustomEndTime] = useState<string>('');
+  
   // UI & Live States
   const [loading, setLoading] = useState<boolean>(true);
   const [isLive, setIsLive] = useState<boolean>(true); // default to live stream!
   const [activeTraceId, setActiveTraceId] = useState<string | null>(null);
   const [timezone, setTimezone] = useState<string>('local');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+
+  // Compute time range boundaries
+  const timeRangeBounds = useMemo(() => {
+    if (timeRange === 'custom') {
+      return {
+        startTime: customStartTime ? new Date(customStartTime).toISOString() : undefined,
+        endTime: customEndTime ? new Date(customEndTime).toISOString() : undefined,
+      };
+    }
+    const hoursMap: Record<string, number> = { '1h': 1, '2h': 2, '5h': 5, '24h': 24 };
+    const hours = hoursMap[timeRange];
+    if (hours) {
+      const startTime = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+      return { startTime, endTime: undefined };
+    }
+    return { startTime: undefined, endTime: undefined };
+  }, [timeRange, customStartTime, customEndTime]);
+
+  const totalPages = Math.max(1, Math.ceil(totalLogs / pageSize));
 
   // Debounce search input
   useEffect(() => {
@@ -52,19 +81,23 @@ export default function App() {
       if (selectedApp) params.append('appId', selectedApp);
       if (selectedLevel) params.append('level', selectedLevel);
       if (debouncedSearch) params.append('search', debouncedSearch);
-      params.append('limit', '80'); // Grab a clean list of recent logs
+      if (timeRangeBounds.startTime) params.append('startTime', timeRangeBounds.startTime);
+      if (timeRangeBounds.endTime) params.append('endTime', timeRangeBounds.endTime);
+      params.append('limit', String(pageSize));
+      params.append('offset', String((currentPage - 1) * pageSize));
 
       const res = await fetch(`${API_BASE}/logs?${params.toString()}`);
       const data = await res.json();
       if (data.success) {
         setLogs(data.logs);
+        setTotalLogs(data.total || 0);
       }
     } catch (err) {
       console.error('Failed to query logs:', err);
     } finally {
       if (isInitial) setLoading(false);
     }
-  }, [selectedApp, selectedLevel, debouncedSearch]);
+  }, [selectedApp, selectedLevel, debouncedSearch, currentPage, pageSize, timeRangeBounds]);
 
   // Initial load
   useEffect(() => {
@@ -133,7 +166,16 @@ export default function App() {
     setSelectedLevel('');
     setSearchQuery('');
     setActiveTraceId(null);
+    setTimeRange('1h');
+    setCustomStartTime('');
+    setCustomEndTime('');
+    setCurrentPage(1);
   };
+
+  // Reset page on filter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedApp, selectedLevel, debouncedSearch, timeRange, customStartTime, customEndTime]);
 
   const handleTraceSelect = (traceId: string) => {
     setActiveTraceId(traceId);
@@ -266,6 +308,20 @@ export default function App() {
             <option value="Europe/London">GMT/BST (London)</option>
           </select>
 
+          {/* Time Range selector */}
+          <select
+            className="filter-select"
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value)}
+            style={{ minWidth: '130px' }}
+          >
+            <option value="1h">Last 1 Hour</option>
+            <option value="2h">Last 2 Hours</option>
+            <option value="5h">Last 5 Hours</option>
+            <option value="24h">Last 24 Hours</option>
+            <option value="custom">Custom Range</option>
+          </select>
+
           {/* Live stream switch */}
           <button 
             className={`btn-live ${isLive ? 'active' : ''}`}
@@ -285,7 +341,7 @@ export default function App() {
             <RotateCw size={14} /> Refresh
           </button>
 
-          {(selectedApp || selectedLevel || searchQuery || activeTraceId) && (
+          {(selectedApp || selectedLevel || searchQuery || activeTraceId || timeRange !== '1h') && (
             <button
               className="btn-live"
               style={{ background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.3)', color: 'var(--color-error)' }}
@@ -295,6 +351,36 @@ export default function App() {
             </button>
           )}
         </div>
+
+        {/* Custom Time Range Picker */}
+        {timeRange === 'custom' && (
+          <div className="time-range-picker">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Clock size={14} style={{ color: 'var(--text-muted)' }} />
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Custom Range:</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                From
+                <input
+                  type="datetime-local"
+                  className="time-input"
+                  value={customStartTime}
+                  onChange={(e) => setCustomStartTime(e.target.value)}
+                />
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                To
+                <input
+                  type="datetime-local"
+                  className="time-input"
+                  value={customEndTime}
+                  onChange={(e) => setCustomEndTime(e.target.value)}
+                />
+              </label>
+            </div>
+          </div>
+        )}
 
         {/* 3. Stats section */}
         <StatsPanel logs={logs} />
@@ -306,6 +392,50 @@ export default function App() {
           </div>
         ) : (
           <LogTable logs={logs} onTraceSelect={handleTraceSelect} timezone={timezone} />
+        )}
+
+        {/* Pagination Controls */}
+        {!loading && totalLogs > 0 && (
+          <div className="pagination-bar">
+            <span className="pagination-info">
+              Showing {Math.min((currentPage - 1) * pageSize + 1, totalLogs)}–{Math.min(currentPage * pageSize, totalLogs)} of {totalLogs.toLocaleString()} logs
+            </span>
+            <div className="pagination-controls">
+              <button
+                className="pagination-btn"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage(1)}
+                title="First page"
+              >
+                First
+              </button>
+              <button
+                className="pagination-btn"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="pagination-page">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                className="pagination-btn"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              >
+                <ChevronRight size={16} />
+              </button>
+              <button
+                className="pagination-btn"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(totalPages)}
+                title="Last page"
+              >
+                Last
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
