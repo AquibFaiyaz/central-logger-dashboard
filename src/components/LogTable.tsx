@@ -236,64 +236,65 @@ export const LogTable = ({
       )}
 
       {/* Embedded Pagination Controls */}
-      {totalLogs > 0 && (
-        <div className="pagination-bar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <span className="pagination-info">
-              Showing {Math.min((currentPage - 1) * pageSize + 1, totalLogs)}–{Math.min(currentPage * pageSize, totalLogs)} of {totalLogs.toLocaleString()} logs
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Show:</span>
-              <select
-                className="pagination-select"
-                value={pageSize}
-                onChange={(e) => onPageSizeChange(parseInt(e.target.value))}
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={30}>30</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
-          </div>
-          <div className="pagination-controls">
-            <button
-              className="pagination-btn"
-              disabled={currentPage <= 1}
-              onClick={() => onPageChange(1)}
-              title="First page"
+      <div className="pagination-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <span className="pagination-info">
+            {totalLogs > 0
+              ? `Showing ${Math.min((currentPage - 1) * pageSize + 1, totalLogs)}–${Math.min(currentPage * pageSize, totalLogs)} of ${totalLogs.toLocaleString()} logs`
+              : 'Showing 0–0 of 0 logs'
+            }
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Show:</span>
+            <select
+              className="pagination-select"
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(parseInt(e.target.value))}
             >
-              First
-            </button>
-            <button
-              className="pagination-btn"
-              disabled={currentPage <= 1}
-              onClick={() => onPageChange(p => Math.max(1, p - 1))}
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span className="pagination-page">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              className="pagination-btn"
-              disabled={currentPage >= totalPages}
-              onClick={() => onPageChange(p => Math.min(totalPages, p + 1))}
-            >
-              <ChevronRight size={16} />
-            </button>
-            <button
-              className="pagination-btn"
-              disabled={currentPage >= totalPages}
-              onClick={() => onPageChange(totalPages)}
-              title="Last page"
-            >
-              Last
-            </button>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={30}>30</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
           </div>
         </div>
-      )}
+        <div className="pagination-controls">
+          <button
+            className="pagination-btn"
+            disabled={currentPage <= 1 || totalLogs === 0}
+            onClick={() => onPageChange(1)}
+            title="First page"
+          >
+            First
+          </button>
+          <button
+            className="pagination-btn"
+            disabled={currentPage <= 1 || totalLogs === 0}
+            onClick={() => onPageChange(p => Math.max(1, p - 1))}
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="pagination-page">
+            Page {totalLogs > 0 ? currentPage : 0} of {totalPages}
+          </span>
+          <button
+            className="pagination-btn"
+            disabled={currentPage >= totalPages || totalLogs === 0}
+            onClick={() => onPageChange(p => Math.min(totalPages, p + 1))}
+          >
+            <ChevronRight size={16} />
+          </button>
+          <button
+            className="pagination-btn"
+            disabled={currentPage >= totalPages || totalLogs === 0}
+            onClick={() => onPageChange(totalPages)}
+            title="Last page"
+          >
+            Last
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
