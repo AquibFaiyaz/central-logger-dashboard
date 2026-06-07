@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, RotateCw, Trash2, Shield, Radio, Terminal, Menu, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, RotateCw, Trash2, Shield, Radio, Terminal, Menu, Clock } from 'lucide-react';
 import { StatsPanel } from './components/StatsPanel';
 import { LogTable } from './components/LogTable';
 import { TraceTimeline } from './components/TraceTimeline';
@@ -18,7 +18,7 @@ export default function App() {
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize] = useState<number>(50);
+  const [pageSize, setPageSize] = useState<number>(30);
   const [totalLogs, setTotalLogs] = useState<number>(0);
 
   // Time Range State
@@ -179,6 +179,11 @@ export default function App() {
 
   const handleTraceSelect = (traceId: string) => {
     setActiveTraceId(traceId);
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setCurrentPage(1);
   };
 
   return (
@@ -385,57 +390,23 @@ export default function App() {
         {/* 3. Stats section */}
         <StatsPanel logs={logs} />
 
-        {/* 4. Logs List */}
+        {/* 4. Logs List & Pagination */}
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'var(--text-secondary)' }}>
             <RotateCw size={24} style={{ animation: 'spin 2s linear infinite', marginRight: '0.75rem' }} /> Loading central logs...
           </div>
         ) : (
-          <LogTable logs={logs} onTraceSelect={handleTraceSelect} timezone={timezone} />
-        )}
-
-        {/* Pagination Controls */}
-        {!loading && totalLogs > 0 && (
-          <div className="pagination-bar">
-            <span className="pagination-info">
-              Showing {Math.min((currentPage - 1) * pageSize + 1, totalLogs)}–{Math.min(currentPage * pageSize, totalLogs)} of {totalLogs.toLocaleString()} logs
-            </span>
-            <div className="pagination-controls">
-              <button
-                className="pagination-btn"
-                disabled={currentPage <= 1}
-                onClick={() => setCurrentPage(1)}
-                title="First page"
-              >
-                First
-              </button>
-              <button
-                className="pagination-btn"
-                disabled={currentPage <= 1}
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span className="pagination-page">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                className="pagination-btn"
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              >
-                <ChevronRight size={16} />
-              </button>
-              <button
-                className="pagination-btn"
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage(totalPages)}
-                title="Last page"
-              >
-                Last
-              </button>
-            </div>
-          </div>
+          <LogTable 
+            logs={logs} 
+            onTraceSelect={handleTraceSelect} 
+            timezone={timezone}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalLogs={totalLogs}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={handlePageSizeChange}
+          />
         )}
       </div>
 
