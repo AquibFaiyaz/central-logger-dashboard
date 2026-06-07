@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, RotateCw, Trash2, Shield, Radio, Terminal } from 'lucide-react';
+import { Search, RotateCw, Trash2, Shield, Radio, Terminal, Menu } from 'lucide-react';
 import { StatsPanel } from './components/StatsPanel';
 import { LogTable } from './components/LogTable';
 import { TraceTimeline } from './components/TraceTimeline';
@@ -21,6 +21,7 @@ export default function App() {
   const [isLive, setIsLive] = useState<boolean>(true); // default to live stream!
   const [activeTraceId, setActiveTraceId] = useState<string | null>(null);
   const [timezone, setTimezone] = useState<string>('local');
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
   // Debounce search input
   useEffect(() => {
@@ -140,8 +141,14 @@ export default function App() {
 
   return (
     <div className="dashboard-container">
+      {/* Mobile sidebar overlay */}
+      <div 
+        className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} 
+        onClick={() => setSidebarOpen(false)} 
+      />
+
       {/* 1. Sidebar */}
-      <div className="sidebar">
+      <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem' }}>
           <div style={{
             background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
@@ -199,6 +206,15 @@ export default function App() {
       <div className="main-content">
         {/* Header / Query controls */}
         <div className="header-actions">
+          {/* Mobile menu toggle */}
+          <button 
+            className="mobile-menu-btn"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label="Toggle sidebar menu"
+          >
+            <Menu size={20} />
+          </button>
+
           {/* Query search */}
           <div className="search-input-wrapper">
             <Search size={18} />

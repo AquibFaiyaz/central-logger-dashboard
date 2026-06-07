@@ -107,7 +107,7 @@ export const LogTable = ({ logs, onTraceSelect, timezone }: LogTableProps) => {
 
           return (
             <Fragment key={log.id}>
-              {/* Log Row */}
+              {/* Desktop Log Row (hidden on mobile via CSS) */}
               <div 
                 className={`log-row ${isExpanded ? 'expanded' : ''}`} 
                 onClick={() => toggleExpand(log.id)}
@@ -170,7 +170,45 @@ export const LogTable = ({ logs, onTraceSelect, timezone }: LogTableProps) => {
                 </div>
               </div>
 
-              {/* Collapsible Details */}
+              {/* Mobile Log Row (shown on mobile via CSS) */}
+              <div 
+                className={`log-row-mobile ${isExpanded ? 'expanded' : ''}`}
+                onClick={() => toggleExpand(log.id)}
+              >
+                <div className="log-row-mobile-top">
+                  <div className="log-row-mobile-meta">
+                    {isExpanded ? <ChevronDown size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} /> : <ChevronRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />}
+                    <span className={getLevelBadgeClass(log.level)}>{log.level}</span>
+                    <span style={{ fontWeight: 500, fontSize: '0.8rem', color: '#e4e4e7' }}>{log.appId}</span>
+                    {isTransaction && (
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: '#818cf8' }}>{log.type}</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+                    {isTransaction && duration !== undefined && (
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: duration > 1000 ? 'var(--color-error)' : 'var(--text-secondary)' }}>
+                        {duration}ms
+                      </span>
+                    )}
+                    {log.traceId && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onTraceSelect(log.traceId); }}
+                        style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                      >
+                        <GitBranch size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="log-row-mobile-message" title={log.message}>
+                  {log.message}
+                </div>
+                <div className="log-row-mobile-time">
+                  {formatTimestamp(log.timestamp)}
+                </div>
+              </div>
+
+              {/* Collapsible Details (shared between desktop and mobile) */}
               {isExpanded && (
                 <div className="log-details-expanded" onClick={(e) => e.stopPropagation()}>
                   <LogDetails log={log} onTraceSelect={onTraceSelect} />
